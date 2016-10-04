@@ -1,0 +1,53 @@
+This is the guide for how to use the openssl sign a message.txt, and verify it. 
+
+$openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:3 -out privkey-A.pem
+Then the prviate key is generated.
+-rw-rw-r-- 1 zechengl zechengl 1704 Sep 27 20:01 privkey-A.pem
+
+$openssl pkey -in privkey-A.pem -text 
+View the key
+
+$openssl pkey -in privkey-A.pem -out pubkey-A.pem -pubout
+create a public key A from private key A.
+
+$openssl pkey -in pubkey-A.pem -pubin -text 
+View the exponent: 3
+
+$openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:3 -out privkey-B.pem
+$openssl pkey -in privkey-B.pem -out pubkey-B.pem -pubout
+Create a B.pem both in private and public. For futher use.
+Now we have privkey-A.pem pubkey-A.pem privkey-B.pem pubkey-B.pem
+
+$nano message.txt
+write something for example: this is an example.
+ctrl O and ctrl X to back into the terminal.
+
+$openssl dgst -sha1 message.txt 
+using a algorithm (hash) to sign the message.
+Look like this :SHA1(message.txt)= 86b0447937ac675b1eef11d91ee6dda92e85b045
+
+$ openssl dgst -sha1 -sign privkey-A.pem -out signature.bin message.txt
+create a binary signature file of message.txt by using hash algorithm and the prviate key A.pem
+
+$ openssl pkeyutl -encrypt -in message.txt -pubin -inkey pubkey-B.pem -out ciphertext.bin
+using RSA encrypt message.txt public key of user B,only B has it private key to decrypt it.
+
+$ openssl pkeyutl -decrypt -in ciphertext.bin -inkey privkey-B.pem -out received-message.txt
+decrypt it
+Then we can  $cat received-message.txt
+It has the same text content.
+
+$ openssl dgst -sha1 -verify pubkey-A.pem -signature signature.bin received-message.txt
+Give us the :  Verified OK
+If we change the pubkey to B.pem, then will be Verified Failure.
+
+So the part I will use in the sign and verify the .mpd file, is first create a public and private key, and use digest 
+to run the algorithm on the mpd file, then sign private key on .bin from .mpd, in the last step, verify the public file
+with signature.bin which can judge the Verification.
+
+
+$openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:3 -out privkey-A.pem
+$openssl pkey -in privkey-A.pem -out pubkey-A.pem -pubout
+$openssl dgst -sha1 sample.mpd
+$ openssl dgst -sha1 -sign privkey-A.pem -out signature.bin sample.mpd
+$ openssl dgst -sha1 -verify pubkey-A.pem -signature signature.bin sample.mpd
